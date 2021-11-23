@@ -213,6 +213,7 @@ contract Provable is StandardToken {
             if(signer == whiteList[i])
             {
                 isInList=true;
+                break;
             }
         }
         return isInList;
@@ -305,10 +306,12 @@ contract FourArt is StandardToken, Owned, BurnableToken,Provable {
     {
         address[] memory  newWhiteList = new address[](whiteList.length-1); 
         require(isInWhiteList(oldSigner));
+        uint j=0;
         for (uint i=0; i<whiteList.length; i++) {
             if(oldSigner != whiteList[i])
             {
-                newWhiteList[i]=whiteList[i];
+                newWhiteList[j]=whiteList[i];
+                j++;
             }
         }
         whiteList=newWhiteList;
