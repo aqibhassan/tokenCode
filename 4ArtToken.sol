@@ -31,6 +31,7 @@ library SafeMath {
     }
 }
 
+
 /**
  * @title ERC20Basic
  * @dev Simpler version of ERC20 interface
@@ -189,8 +190,9 @@ contract BurnableToken is BasicToken, Owned {
 }
 
 contract Provable is StandardToken {
-
+    
     mapping(bytes32 => bool) played;
+    address[] whiteList; 
     
     function signedTransfer(bytes32 msgHash, bytes32 r, bytes32 s, uint8 v, address _to, uint256 _value) public {
         require(
@@ -204,7 +206,17 @@ contract Provable is StandardToken {
             )
         );
     }
-    
+    function isInWhiteList(address signer) public view returns (bool)
+    {
+        bool isInList = false;
+        for (uint i=0; i<whiteList.length; i++) {
+            if(signer == whiteList[i])
+            {
+                isInList=true;
+            }
+        }
+        return isInList;
+    }
     function checkSignedTransfer(bytes32 msgHash, bytes32 r, bytes32 s, uint8 v, address _to, uint256 _value) private returns (bool) {
         address signer = getSigner(
             msgHash,
@@ -212,7 +224,7 @@ contract Provable is StandardToken {
             s,
             v
         );
-        
+        require(isInWhiteList(msg.sender));
         require(signer != address(0));
         require(_to != address(0));
         require(balances[signer] >= _value);
@@ -284,7 +296,23 @@ contract FourArt is StandardToken, Owned, BurnableToken,Provable {
     function transferTokens(address _to, uint256 _tokens)  public {
         _transfer(msg.sender, _to, _tokens);
     }
-
+    function addInWhiteList(address newSigner) onlyOwner public 
+    {
+        require(!isInWhiteList(newSigner));
+        whiteList.push(newSigner);
+    }
+      function removeFromWhiteList(address oldSigner) onlyOwner public 
+    {
+        address[] memory  newWhiteList = new address[](whiteList.length-1); 
+        require(isInWhiteList(oldSigner));
+        for (uint i=0; i<whiteList.length; i++) {
+            if(oldSigner != whiteList[i])
+            {
+                newWhiteList[i]=whiteList[i];
+            }
+        }
+        whiteList=newWhiteList;
+    }
     /**
      * @dev Transfer from allowed address to other address
      * @param _from from address
