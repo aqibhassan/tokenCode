@@ -38,9 +38,17 @@ library SafeMath {
  */
 contract ERC20Basic {
     uint256 public totalSupply;
+
     function balanceOf(address who) public view returns (uint256);
+
     event Transfer(address indexed from, address indexed to, uint256 value);
-    event DelegatedTransfer(address indexed from, address indexed to, address indexed delegate, uint256 value, uint256 fee);
+    event DelegatedTransfer(
+        address indexed from,
+        address indexed to,
+        address indexed delegate,
+        uint256 value,
+        uint256 fee
+    );
 }
 
 /**
@@ -52,10 +60,10 @@ contract BasicToken is ERC20Basic {
     mapping(address => uint256) public balances;
 
     /**
-    * @dev Gets the balance of the specified address.
-    * @param _owner The address to query the the balance of.
-    * @return An uint256 representing the amount owned by the passed address.
-    */
+     * @dev Gets the balance of the specified address.
+     * @param _owner The address to query the the balance of.
+     * @return An uint256 representing the amount owned by the passed address.
+     */
     function balanceOf(address _owner) public view returns (uint256 balance) {
         return balances[_owner];
     }
@@ -66,10 +74,24 @@ contract BasicToken is ERC20Basic {
  * @dev see https://github.com/ethereum/EIPs/issues/20
  */
 contract ERC20 is ERC20Basic {
-    function allowance(address owner, address spender) public view returns (uint256);
-    function transferFrom(address from, address to, uint256 value) public returns (bool);
+    function allowance(address owner, address spender)
+        public
+        view
+        returns (uint256);
+
+    function transferFrom(
+        address from,
+        address to,
+        uint256 value
+    ) public returns (bool);
+
     function approve(address spender, uint256 value) public returns (bool);
-    event Approval(address indexed owner, address indexed spender, uint256 value);
+
+    event Approval(
+        address indexed owner,
+        address indexed spender,
+        uint256 value
+    );
 }
 
 /**
@@ -80,8 +102,7 @@ contract ERC20 is ERC20Basic {
  * @dev Based on code by FirstBlood: https://github.com/Firstbloodio/token/blob/master/smart_contract/FirstBloodToken.sol
  */
 contract StandardToken is ERC20, BasicToken {
-
-    mapping (address => mapping (address => uint256)) internal allowed;
+    mapping(address => mapping(address => uint256)) internal allowed;
 
     /**
      * @dev Approve the passed address to spend the specified amount of tokens on behalf of msg.sender.
@@ -104,7 +125,11 @@ contract StandardToken is ERC20, BasicToken {
      * @param _spender address The address which will spend the funds.
      * @return A uint256 specifying the amount of tokens still available for the spender.
      */
-    function allowance(address _owner, address _spender) public view returns (uint256 remaining) {
+    function allowance(address _owner, address _spender)
+        public
+        view
+        returns (uint256 remaining)
+    {
         return allowed[_owner][_spender];
     }
 
@@ -114,14 +139,22 @@ contract StandardToken is ERC20, BasicToken {
      * the first transaction is mined)
      * From MonolithDAO Token.sol
      */
-    function increaseApproval (address _spender, uint _addedValue) public returns (bool success) {
-        allowed[msg.sender][_spender] = allowed[msg.sender][_spender].add(_addedValue);
+    function increaseApproval(address _spender, uint256 _addedValue)
+        public
+        returns (bool success)
+    {
+        allowed[msg.sender][_spender] = allowed[msg.sender][_spender].add(
+            _addedValue
+        );
         emit Approval(msg.sender, _spender, allowed[msg.sender][_spender]);
         return true;
     }
 
-    function decreaseApproval (address _spender, uint _subtractedValue) public returns (bool success) {
-        uint oldValue = allowed[msg.sender][_spender];
+    function decreaseApproval(address _spender, uint256 _subtractedValue)
+        public
+        returns (bool success)
+    {
+        uint256 oldValue = allowed[msg.sender][_spender];
         if (_subtractedValue > oldValue) {
             allowed[msg.sender][_spender] = 0;
         } else {
@@ -130,14 +163,16 @@ contract StandardToken is ERC20, BasicToken {
         emit Approval(msg.sender, _spender, allowed[msg.sender][_spender]);
         return true;
     }
-
 }
 
 /** @title Owned */
 contract Owned {
-    address payable public  owner;
+    address payable public owner;
 
-    event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
+    event OwnershipTransferred(
+        address indexed previousOwner,
+        address indexed newOwner
+    );
 
     /**
      * @dev Owned constructor
@@ -150,13 +185,13 @@ contract Owned {
      * @dev Allows the current owner to transfer control of the contract to a newOwner.
      * @param newOwner The address to transfer ownership to.
      */
-    function transferOwnership(address payable newOwner) onlyOwner public {
+    function transferOwnership(address payable newOwner) public onlyOwner {
         require(newOwner != address(0));
         emit OwnershipTransferred(owner, newOwner);
         owner = newOwner;
     }
 
-    modifier onlyOwner {
+    modifier onlyOwner() {
         require(msg.sender == owner);
         _;
     }
@@ -170,7 +205,7 @@ contract BurnableToken is BasicToken, Owned {
      * @dev Burn token(s) by only owner
      * @param _value number of token(s)
      */
-    function burn(uint256 _value) onlyOwner public {
+    function burn(uint256 _value) public onlyOwner {
         _burn(msg.sender, _value);
     }
 
@@ -189,30 +224,29 @@ contract BurnableToken is BasicToken, Owned {
 }
 
 contract Provable is StandardToken {
-
     mapping(bytes32 => bool) played;
-    
-    function signedTransfer(bytes32 msgHash, bytes32 r, bytes32 s, uint8 v, address _to, uint256 _value) public {
-        require(
-            checkSignedTransfer(
-                msgHash,
-                r,
-                s,
-                v,
-                _to,
-                _value
-            )
-        );
+
+    function signedTransfer(
+        bytes32 msgHash,
+        bytes32 r,
+        bytes32 s,
+        uint8 v,
+        address _to,
+        uint256 _value
+    ) public {
+        require(checkSignedTransfer(msgHash, r, s, v, _to, _value));
     }
-    
-    function checkSignedTransfer(bytes32 msgHash, bytes32 r, bytes32 s, uint8 v, address _to, uint256 _value) private returns (bool) {
-        address signer = getSigner(
-            msgHash,
-            r,
-            s,
-            v
-        );
-        
+
+    function checkSignedTransfer(
+        bytes32 msgHash,
+        bytes32 r,
+        bytes32 s,
+        uint8 v,
+        address _to,
+        uint256 _value
+    ) private returns (bool) {
+        address signer = getSigner(msgHash, r, s, v);
+
         require(signer != address(0));
         require(_to != address(0));
         require(balances[signer] >= _value);
@@ -224,26 +258,26 @@ contract Provable is StandardToken {
         emit Transfer(signer, _to, _value);
         return true;
     }
-    
-    function getSigner(bytes32 msgHash, bytes32 r, bytes32 s, uint8 v) private returns (address) {
-    
-        address signer = ecrecover(
-            msgHash,
-            v,
-            r,
-            s
-        );
 
-        if (played[msgHash] == true) {return address(0);}
+    function getSigner(
+        bytes32 msgHash,
+        bytes32 r,
+        bytes32 s,
+        uint8 v
+    ) private returns (address) {
+        address signer = ecrecover(msgHash, v, r, s);
+
+        if (played[msgHash] == true) {
+            return address(0);
+        }
         played[msgHash] = true;
 
         return signer;
     }
-    
 }
 
 /** @title FourArt Token */
-contract FourArt is StandardToken, Owned, BurnableToken,Provable {
+contract FourArt is StandardToken, Owned, BurnableToken, Provable {
     string public constant name = "4ARTToken";
     string public constant symbol = "4Art";
     uint8 public constant decimals = 18;
@@ -251,7 +285,7 @@ contract FourArt is StandardToken, Owned, BurnableToken,Provable {
     /**
      * @dev FourArt constructor call on contract deployment
      */
-    constructor() public  {
+    constructor() public {
         totalSupply = 2991500000e18;
         balances[msg.sender] = totalSupply;
     }
@@ -262,7 +296,11 @@ contract FourArt is StandardToken, Owned, BurnableToken,Provable {
      * @param _to to address
      * @param _value number of token(s)
      */
-    function _transfer(address _from, address _to, uint _value) internal {
+    function _transfer(
+        address _from,
+        address _to,
+        uint256 _value
+    ) internal {
         // Prevent transfer to 0x0 address. Use burn() instead
         require(_to != address(0));
         // Check if the sender has enough
@@ -281,7 +319,7 @@ contract FourArt is StandardToken, Owned, BurnableToken,Provable {
      * @param _to to address
      * @param _tokens number of token(s)
      */
-    function transferTokens(address _to, uint256 _tokens)  public {
+    function transferTokens(address _to, uint256 _tokens) public {
         _transfer(msg.sender, _to, _tokens);
     }
 
@@ -291,7 +329,11 @@ contract FourArt is StandardToken, Owned, BurnableToken,Provable {
      * @param _to to address
      * @param _value number of token(s)
      */
-    function transferFrom(address _from, address _to, uint256 _value) public returns (bool) {
+    function transferFrom(
+        address _from,
+        address _to,
+        uint256 _value
+    ) public returns (bool) {
         require(_to != address(0));
         require(_value <= balances[_from]);
         require(_value <= allowed[_from][msg.sender]);
@@ -306,7 +348,7 @@ contract FourArt is StandardToken, Owned, BurnableToken,Provable {
      * @dev Add tokens to total supply by only owner
      * @param _value number of token(s)
      */
-    function addTokenToTotalSupply(uint _value) onlyOwner public {
+    function addTokenToTotalSupply(uint256 _value) public onlyOwner {
         require(_value > 0);
         balances[owner] = balances[owner].add(_value);
         totalSupply = totalSupply.add(_value);
